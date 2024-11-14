@@ -5,6 +5,8 @@ from reportlab.lib import colors
 from reportlab.platypus import Paragraph, SimpleDocTemplate
 from reportlab.lib.styles import getSampleStyleSheet
 import os
+from io import BytesIO
+import textwrap
 
 class PDFHandler:
     @staticmethod
@@ -27,30 +29,29 @@ class PDFHandler:
         # return text
 
     @staticmethod
-    def writePdf(filePath, text, width=612, height=792):  
-        temp_pdf_path = "temp_output.pdf"
+    def writePdf(filePath, text, width=612, height=792): 
+        buffer = BytesIO()
 
-        print("text is ", text)
-        
-        doc = SimpleDocTemplate(temp_pdf_path, pagesize=(width, height))
-        styles = getSampleStyleSheet()
-        style = styles["BodyText"]
-        
-        paragraph = Paragraph(text, style)
-        doc.build([paragraph])
-        
-        temp_reader = PdfReader(temp_pdf_path)
-        writer = PdfWriter()
-        
-        for page in temp_reader.pages:
-            writer.add_page(page)
-        
-        with open(filePath, "wb") as output_pdf:
-            writer.write(output_pdf)
-        
-        if os.path.exists(temp_pdf_path):
-            os.remove(temp_pdf_path)
+        c = canvas.Canvas(buffer, pagesize=(width, height))
 
-# Example usage:
-# text = PDFHandler.readPdf("input.pdf")
-# PDFHandler.writePdf("output.pdf", "Sample text to include in PDF with proper line wrapping.")
+        font_name = "Helvetica"
+        font_size = 12
+        c.setFont(font_name, font_size)
+        wrapped_text = textwrap.wrap(text, width=80)  
+
+        for line in wrapped_text:
+            text_width = c.stringWidth(line, font_name, font_size)
+            x_position = (width - text_width) / 2  
+            c.drawString(x_position, y_position, line)
+            y_position -= 15  
+            if y_position < 50:
+                c.showPage()
+                y_position = 750  
+                c.setFont(font_name, font_size)  
+
+        c.save()
+
+        buffer.seek(0)
+
+        return buffer
+        
